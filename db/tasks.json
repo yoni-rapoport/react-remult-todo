@@ -1,11 +1,13 @@
 [
   {
     "id": "311bb659-5683-4bed-a3bb-d4e2b060b47c",
-    "title": "task a"
+    "title": "task a",
+    "completed": true
   },
   {
     "id": "902e0ec5-6664-49fc-bca0-dc9f100b78f1",
-    "title": "task b"
+    "title": "task 123",
+    "completed": false
   },
   {
     "id": "27c8db57-2522-43fb-9581-c1376bd69c65",

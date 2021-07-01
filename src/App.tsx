@@ -30,7 +30,11 @@ function App() {
       <input value={title} onChange={(e) => setTaskTitle(e.target.value)} />
       <button onClick={createTask}>Create Task</button>
       <ul>
-        {state.tasks.map(t => (<li><TaskEditor task={t} /> <button onClick={() => deleteTask(t)}>Delete</button> </li>))}
+        {state.tasks.map(t => (
+          <li key={t.id}>
+            <TaskEditor task={t} />
+            <button onClick={() => deleteTask(t)}>Delete</button>
+          </li>))}
       </ul>
     </div>
   );
@@ -43,12 +47,24 @@ type Props = {
 };
 
 const TaskEditor: React.FC<Props> = ({ task }) => {
-  const [state, setState] = useState({ ...task, changed: false })
+  const [state, setState] = useState({ ...task })
 
-  const save = () => set(task, state).save().then(t => setState({ ...task, changed: false }));
+
+
+  //https://reactjs.org/docs/forms.html
+  const handleInputChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const target = event.target;
+    const value = target.type === 'checkbox' ? target.checked : target.value;
+    const name = target.name;
+    set(task, { [name]: value });
+    setState({ ...task });
+  }
+
+  const save = () => set(task, state).save().then(t => setState({ ...task }));
 
   return <span>
-    <input value={state.title} onChange={e => setState(prev => ({ ...prev, title: e.target.value, changed: true }))} />
-    <button onClick={save} disabled={!state.changed}>Save</button>
+    <input name="completed" checked={state.completed} type="checkbox" onChange={handleInputChange} />
+    <input name="title" value={state.title} onChange={handleInputChange} />
+    <button onClick={save} disabled={!task.wasChanged()}>Save</button>
   </span>
 }
