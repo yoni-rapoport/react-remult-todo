@@ -5,30 +5,53 @@ import { set } from '@remult/core/set'
 
 const context = new Context();
 function App() {
-  const [title, setTaskTitle] = useState("");
-  const [state, setState] = useState<{
-    loaded: boolean,
-    tasks: Task[]
-  }>({
-    loaded: false,
-    tasks: []
+  const [state, setState] = useState({
+    loadData: true,
+    tasks: [] as Task[],
+    hideCompleted: false,
+    title: '',
+    error: ''
   });
   const createTask = () => {
-    context.for(Task).create({ title }).save().then(() => setTaskTitle('')).then(loadTasks);
+    context.for(Task).create({ title: state.title }).save().then(
+      () => setState(prev => ({ ...prev, title: '' }))).then(loadTasks);
   };
   const loadTasks = () => {
-    context.for(Task).find().then(tasks => setState(prev => ({ ...prev, loaded: true, tasks })))
+    context.for(Task).find({
+      where: task => state.hideCompleted ? task.completed.isDifferentFrom(true) : undefined,
+      orderBy: task => task.completed
+    }).then(tasks => setState(prev => ({ ...prev, loadData: false, tasks })))
   }
   const deleteTask = (t: Task) => {
     t.delete().then(loadTasks);
   }
-  if (!state.loaded) {
+  if (state.loadData) {
     loadTasks();
   }
   return (
     <div className="App">
-      <input value={title} onChange={(e) => setTaskTitle(e.target.value)} />
+      <input value={state.title}
+        onChange={(e) => setState(prev => ({
+          ...prev,
+          title: e.target.value
+        }))} />
       <button onClick={createTask}>Create Task</button>
+      <p>
+        <input
+          id="hideCompleted"
+          type="checkbox"
+          checked={state.hideCompleted}
+          onChange={e =>
+            setState(prev => ({
+              ...prev,
+              hideCompleted: e.target.checked,
+              loadData: true
+            }))
+
+          }
+        />
+        <label htmlFor="hideCompleted">Hide completed</label>
+      </p>
       <ul>
         {state.tasks.map(t => (
           <li key={t.id}>
@@ -60,11 +83,20 @@ const TaskEditor: React.FC<Props> = ({ task }) => {
     setState({ ...task });
   }
 
-  const save = () => set(task, state).save().then(t => setState({ ...task }));
+  const save = () => task.save().then(task => setState({ ...task }));
 
   return <span>
-    <input name="completed" checked={state.completed} type="checkbox" onChange={handleInputChange} />
-    <input name="title" value={state.title} onChange={handleInputChange} />
-    <button onClick={save} disabled={!task.wasChanged()}>Save</button>
+    <input
+      name="completed"
+      checked={state.completed}
+      type="checkbox"
+      onChange={handleInputChange} />
+    <input
+      name="title"
+      value={state.title}
+      onChange={handleInputChange} />
+    <button
+      onClick={save}
+      disabled={!task.wasChanged()}>Save</button>
   </span>
 }

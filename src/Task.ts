@@ -1,11 +1,13 @@
-import { Field, Entity, IdEntity } from "@remult/core";
+import { Field, Entity, IdEntity, Validators } from "@remult/core";
 
 @Entity({
     key: "tasks",
     allowApiCrud: true
 })
 export class Task extends IdEntity {
-    @Field()
+    @Field({
+        validate:Validators.required
+    })
     title: string = '';
     @Field()
     completed: boolean = false;
