@@ -2,34 +2,48 @@ import { Context } from '@remult/core';
 import React, { useState } from 'react';
 import { Task } from './Task';
 import { set } from '@remult/core/set'
+import { useEffect } from 'react';
 
 const context = new Context();
 function App() {
   const [state, setState] = useState({
-    loadData: true,
     tasks: [] as Task[],
     hideCompleted: false,
     title: '',
     error: ''
   });
+  useEffect(() => { loadTasks(); }, [state.hideCompleted]);
+
+  const loadTasks = async () => {
+    context.for(Task).find({
+      where: task => state.hideCompleted ? task.completed.isDifferentFrom(true) : undefined,
+      orderBy: task => task.completed
+    }).then(tasks => setState(prev => ({ ...prev, loadData: false, tasks: [...tasks] })))
+  }
+
   const createTask = () => {
     context.for(Task).create({ title: state.title }).save().then(
       () => setState(prev => ({ ...prev, title: '', error: '' })))
       .catch((e) => setState(prev => ({ ...prev, error: e.message })))
       .then(loadTasks);
   };
-  const loadTasks = () => {
-    context.for(Task).find({
-      where: task => state.hideCompleted ? task.completed.isDifferentFrom(true) : undefined,
-      orderBy: task => task.completed
-    }).then(tasks => setState(prev => ({ ...prev, loadData: false, tasks })))
-  }
+
+
+
   const deleteTask = (t: Task) => {
     t.delete().then(loadTasks);
   }
-  if (state.loadData) {
-    loadTasks();
+  const setAll = (completed: boolean) => {
+    (async () => {
+      for await (const task of context.for(Task).iterate()) {
+        task.completed = completed;
+        await task.save();
+      }
+      setState(prev=>({...prev,tasks:[]}))// not sure y but it doesn't work without this.
+      loadTasks();
+    })();
   }
+
   return (
     <div className="App">
       <input value={state.title}
@@ -54,6 +68,10 @@ function App() {
           }
         />
         <label htmlFor="hideCompleted">Hide completed</label>
+      </p>
+      <p>
+        <button onClick={() => setAll(true)}>Set all as completed</button>
+        <button onClick={() => setAll(false)}>Set all as uncompleted</button>
       </p>
       <ul>
         {state.tasks.map(t => (
