@@ -15,13 +15,15 @@ function App() {
   const [newTask, setNewTask] = useState(() => context.for(Task).create());
 
   useEffect(() => {
-    context.for(Task).find({
-      where: task => hideCompleted ? task.completed.isDifferentFrom(true) : undefined,
-      orderBy: task => task.completed
-    }).then(tasks => {
+    const load = async () => {
+      let tasks = await context.for(Task).find({
+        where: task => hideCompleted ? task.completed.isDifferentFrom(true) : undefined,
+        orderBy: task => task.completed
+      })
       setTasks([]);
       setTasks(tasks);
-    });
+    };
+    load();
   }, [hideCompleted, reloadTaskDependency]);
 
   const createTask = () => {

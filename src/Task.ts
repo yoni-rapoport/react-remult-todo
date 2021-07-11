@@ -11,6 +11,7 @@ export class Task extends IdEntity {
     title: string = '';
     @Field()
     completed: boolean = false;
+    
     @BackendMethod({ allowed: true })
     static async setAll(completed: boolean, context: Context) {
         for await (const task of context.for(Task).iterate()) {
