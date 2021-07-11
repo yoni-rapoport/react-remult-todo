@@ -14,7 +14,9 @@ function App() {
   });
   const createTask = () => {
     context.for(Task).create({ title: state.title }).save().then(
-      () => setState(prev => ({ ...prev, title: '' }))).then(loadTasks);
+      () => setState(prev => ({ ...prev, title: '', error: '' })))
+      .catch((e) => setState(prev => ({ ...prev, error: e.message })))
+      .then(loadTasks);
   };
   const loadTasks = () => {
     context.for(Task).find({
@@ -35,6 +37,7 @@ function App() {
           ...prev,
           title: e.target.value
         }))} />
+      <span style={{ color: 'red' }}>{state.error}</span>
       <button onClick={createTask}>Create Task</button>
       <p>
         <input
@@ -94,7 +97,9 @@ const TaskEditor: React.FC<Props> = ({ task }) => {
     <input
       name="title"
       value={state.title}
-      onChange={handleInputChange} />
+      onChange={handleInputChange}
+      style={{ textDecoration: state.completed ? 'line-through' : undefined }}
+    />
     <button
       onClick={save}
       disabled={!task.wasChanged()}>Save</button>
