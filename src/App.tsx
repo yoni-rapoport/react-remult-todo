@@ -8,42 +8,42 @@ const context = new Context();
 
 
 function App() {
-  const [, render] = useState({});
-  const [reloadTaskDependency, reloadTasks] = useState({});
+
+  const [dataVersion, setDataVersion] = useState({});
+  const [{ newTask }, setNewTask] = useState(() => ({ newTask: context.for(Task).create() }));
   const [tasks, setTasks] = useState([] as Task[]);
   const [hideCompleted, setHideCompleted] = useState(false);
-  const [newTask, setNewTask] = useState(() => context.for(Task).create());
 
   useEffect(() => {
+
     const load = async () => {
       let tasks = await context.for(Task).find({
         where: task => hideCompleted ? task.completed.isDifferentFrom(true) : undefined,
         orderBy: task => task.completed
       })
-      setTasks([]);
       setTasks(tasks);
     };
     load();
-  }, [hideCompleted, reloadTaskDependency]);
+  }, [hideCompleted, dataVersion]);
 
   const createTask = () => {
     newTask.save().then(
       () => {
-        setNewTask(context.for(Task).create());
-        reloadTasks({});
+        setNewTask({ newTask: context.for(Task).create() });
+        setDataVersion({});
       })
-      .catch(() => render({}))
+      .catch(() => setNewTask({ newTask: newTask }))
   };
 
 
 
   const deleteTask = (t: Task) => {
-    t.delete().then(() => reloadTasks({}));
+    t.delete().then(() => setDataVersion({}));
   }
   const setAll = (completed: boolean) => {
     (async () => {
-      await Task.setAll(completed, context);
-      reloadTasks({});
+      await Task.setAll(completed);
+      setDataVersion({});
     })();
   }
 
@@ -52,7 +52,7 @@ function App() {
       <input value={newTask.title}
         onChange={(e) => {
           newTask.title = e.target.value;
-          render({});
+          setNewTask(({ newTask: newTask }))
         }} />
       <span style={{ color: 'red' }}>{newTask._.error}</span>
       <button onClick={createTask}>Create Task</button>
@@ -84,21 +84,19 @@ function App() {
 
 export default App;
 
-type Props = {
-  task: Task
-};
 
-const TaskEditor: React.FC<Props> = ({ task }) => {
-  const [, setState] = useState({});
-  const save = () => task.save().then(() => setState({}));
+
+const TaskEditor: React.FC<{ task: Task }> = ({ task }) => {
+  const [, render] = useState({});
+  const save = () => task.save().then(() => render({}));
   return <span>
     <input
       checked={task.completed}
       type="checkbox"
-      onChange={e => { task.completed = e.target.checked; setState({}) }} />
+      onChange={e => { task.completed = e.target.checked; render({}) }} />
     <input
       value={task.title}
-      onChange={e => { task.title = e.target.value; setState({}) }}
+      onChange={e => { task.title = e.target.value; render({}) }}
       style={{ textDecoration: task.completed ? 'line-through' : undefined }}
     />
     <button
@@ -106,3 +104,5 @@ const TaskEditor: React.FC<Props> = ({ task }) => {
       disabled={!task.wasChanged()}>Save</button>
   </span>
 }
+
+

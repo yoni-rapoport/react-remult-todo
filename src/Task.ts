@@ -13,8 +13,8 @@ export class Task extends IdEntity {
     completed: boolean = false;
     
     @BackendMethod({ allowed: true })
-    static async setAll(completed: boolean, context: Context) {
-        for await (const task of context.for(Task).iterate()) {
+    static async setAll(completed: boolean, context?: Context) {
+        for await (const task of context!.for(Task).iterate()) {
             task.completed = completed;
             await task.save();
         }
