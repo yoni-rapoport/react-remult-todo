@@ -1,5 +1,5 @@
 import { Context } from '@remult/core';
-import React, { useState } from 'react';
+import React, { useCallback, useState } from 'react';
 import { Task } from './Task';
 import { useEffect } from 'react';
 
@@ -8,42 +8,39 @@ const context = new Context();
 
 
 function App() {
-
-  const [dataVersion, setDataVersion] = useState({});
   const [{ newTask }, setNewTask] = useState(() => ({ newTask: context.for(Task).create() }));
   const [tasks, setTasks] = useState([] as Task[]);
   const [hideCompleted, setHideCompleted] = useState(false);
 
-  useEffect(() => {
+  const loadTasks = useCallback(async () => {
+    let tasks = await context.for(Task).find({
+      where: task => hideCompleted ? task.completed.isDifferentFrom(true) : undefined,
+      orderBy: task => task.completed
+    })
+    setTasks(tasks);
+  }, [hideCompleted]);
 
-    const load = async () => {
-      let tasks = await context.for(Task).find({
-        where: task => hideCompleted ? task.completed.isDifferentFrom(true) : undefined,
-        orderBy: task => task.completed
-      })
-      setTasks(tasks);
-    };
-    load();
-  }, [hideCompleted, dataVersion]);
+  useEffect(() => {
+    loadTasks();
+  }, [ loadTasks]);
 
   const createTask = () => {
     newTask.save().then(
       () => {
         setNewTask({ newTask: context.for(Task).create() });
-        setDataVersion({});
+        loadTasks();
       })
       .catch(() => setNewTask({ newTask: newTask }))
   };
 
-
-
   const deleteTask = (t: Task) => {
-    t.delete().then(() => setDataVersion({}));
+    t.delete().then(() => loadTasks());
   }
+
   const setAll = (completed: boolean) => {
     (async () => {
       await Task.setAll(completed);
-      setDataVersion({});
+      loadTasks();
     })();
   }
 
@@ -86,17 +83,21 @@ export default App;
 
 
 
-const TaskEditor: React.FC<{ task: Task }> = ({ task }) => {
-  const [, render] = useState({});
-  const save = () => task.save().then(() => render({}));
+const TaskEditor: React.FC<{ task: Task }> = (props) => {
+  const [{ task }, setTask] = useState(props)
+  useEffect(() => {
+    setTask(props);
+  }, [props]);
+  const save = () => task.save().then(() => setTask({ task }));
+
   return <span>
     <input
       checked={task.completed}
       type="checkbox"
-      onChange={e => { task.completed = e.target.checked; render({}) }} />
+      onChange={e => { task.completed = e.target.checked; setTask({ task }) }} />
     <input
       value={task.title}
-      onChange={e => { task.title = e.target.value; render({}) }}
+      onChange={e => { task.title = e.target.value; setTask({ task }) }}
       style={{ textDecoration: task.completed ? 'line-through' : undefined }}
     />
     <button
